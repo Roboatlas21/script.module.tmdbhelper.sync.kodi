@@ -1,5 +1,6 @@
 from tmdbhelper.lib.sync.datasync import (
     SyncDataGetterAll, SyncDataGetterAllMoviesToWatch, SyncDataGetterAllShowsToWatch,
+    SyncDataGetterAllItemsWatched,
 )
 
 
@@ -9,6 +10,10 @@ class KodiSyncDataGetterMoviesToWatch(SyncDataGetterAllMoviesToWatch):
 
 class KodiSyncDataGetterShowsToWatch(SyncDataGetterAllShowsToWatch):
     pass
+
+
+class KodiSyncDataGetterWatchlistWatched(SyncDataGetterAllItemsWatched):
+    base_keys = ('id',)
 
 
 class KodiSyncDataGetterShowsInProgress(SyncDataGetterAll):

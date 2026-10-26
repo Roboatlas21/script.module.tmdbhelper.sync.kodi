@@ -1,12 +1,16 @@
 from jurialmunkey.ftools import cached_property
+from jurialmunkey.window import get_property
 from tmdbhelper.lib.addon.logger import kodi_log
+from tmdbhelper.lib.addon.tmdate import get_timestring_zulu_now, set_timestamp
 from tmdbhelper.lib.monitor.scrobble import ScrobbleRequest, ScrobbleResult
+from tmdbhelper.lib.sync.invalidator import SyncInvalidatorWatchlist
 from tmdbhelper_sync_kodi.dates import get_kodi_date_now
 from tmdbhelper_sync_kodi.library import KodiLibraryError
 
 
 class ProviderScrobbler(ScrobbleRequest):
     completed = False
+    watchlist_completed = False
 
     @property
     def library(self):
@@ -36,10 +40,30 @@ class ProviderScrobbler(ScrobbleRequest):
 
     def scrobble(self, method):
         try:
-            return self.get_scrobble_result(method)
+            result = self.get_scrobble_result(method)
         except KodiLibraryError as exc:
             kodi_log(f'Kodi scrobble: {exc}', 1)
             return ScrobbleResult(False, False)
+        if result.successful and method == 'stop' and self.player.progress >= 80 and not self.watchlist_completed:
+            self.remove_watchlisted()
+            self.watchlist_completed = True
+        return result
+
+    def remove_watchlisted(self):
+        player = self.player
+        removed = self.provider.watchlist.remove_played(
+            player.tmdb_type, player.tmdb_id, get_timestring_zulu_now(),
+            None if self.media_type == 'movie' else player.season,
+            None if self.media_type == 'movie' else player.episode,
+        )
+        selected = player.syncdata.registry.get_selected_provider('watchlist')
+        if not removed or selected is None or selected.provider_id != self.provider.provider_id:
+            return
+        invalidator = SyncInvalidatorWatchlist()
+        invalidator.syncdata = player.syncdata
+        invalidator.notification = False
+        invalidator.run(sync=True)
+        get_property('Widgets.Reload', set_property=str(set_timestamp(0, True)))
 
     def get_scrobble_result(self, method):
         if self.target is None:

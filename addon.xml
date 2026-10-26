@@ -8,7 +8,7 @@
     <extension point="xbmc.python.module" library="resources/lib"/>
     <extension point="xbmc.addon.metadata">
         <summary lang="en_GB">Kodi library sync provider for TMDbHelper</summary>
-        <description lang="en_GB">Collection, history, playback progress, watched actions and scrobbling using the local Kodi video library.</description>
+        <description lang="en_GB">Collection, history, playback progress, watched actions and scrobbling using the local Kodi video library, plus a local watchlist.</description>
         <platform>all</platform>
         <license>GPL-3.0-or-later</license>
         <assets>

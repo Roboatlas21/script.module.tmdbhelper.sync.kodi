@@ -4,7 +4,10 @@ from tmdbhelper_sync_kodi.library import KodiLibraryClient
 from tmdbhelper_sync_kodi.sync import synctype, datasync
 from tmdbhelper_sync_kodi.actions.basic import ItemWatched, ItemUnwatched
 from tmdbhelper_sync_kodi.actions.progress import ItemProgress
+from tmdbhelper_sync_kodi.actions.watchlist import ItemWatchlist
 from tmdbhelper_sync_kodi.scrobbler import ProviderScrobbler
+from tmdbhelper_sync_kodi.sync.watchlist import SyncWatchlist
+from tmdbhelper_sync_kodi.watchlist.database import WatchlistDatabase
 
 
 class Provider(SyncProvider):
@@ -14,6 +17,7 @@ class Provider(SyncProvider):
     sync_classes = {
         'SyncCollection': synctype.SyncCollection,
         'SyncWatched': synctype.SyncWatched,
+        'SyncWatchlist': SyncWatchlist,
         'SyncPlayback': synctype.SyncPlayback,
         'SyncAiredEpisodes': synctype.SyncAiredEpisodes,
         'SyncNextEpisodes': synctype.SyncNextEpisodes,
@@ -23,6 +27,7 @@ class Provider(SyncProvider):
         'watched': ItemWatched,
         'unwatched': ItemUnwatched,
         'progress': ItemProgress,
+        'watchlist': ItemWatchlist,
     }
     getter_classes = {
         'movies_to_watch': datasync.KodiSyncDataGetterMoviesToWatch,
@@ -37,6 +42,13 @@ class Provider(SyncProvider):
 
     def get_library(self):
         return KodiLibraryClient()
+
+    @cached_property
+    def watchlist(self):
+        return self.get_watchlist()
+
+    def get_watchlist(self):
+        return WatchlistDatabase()
 
     def is_authorized(self):
         return True
