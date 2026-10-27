@@ -1,3 +1,4 @@
+from sqlite3 import Error as DatabaseError
 from jurialmunkey.ftools import cached_property
 from tmdbhelper.lib.addon.plugin import get_localized
 from tmdbhelper.lib.script.sync.provider import ItemSync as ProviderItemSync
@@ -10,6 +11,10 @@ class ItemSync(ProviderItemSync):
         return self.sync_provider.library
 
     @property
+    def history(self):
+        return self.sync_provider.history
+
+    @property
     def media_type(self):
         return 'movie' if self.tmdb_type == 'movie' else 'episode'
 
@@ -20,8 +25,21 @@ class ItemSync(ProviderItemSync):
     def get_targets(self):
         return self.library.get_targets(self.tmdb_type, self.tmdb_id, self.season, self.episode)
 
+    def get_history_targets(self, targets):
+        identities = {
+            self.history.get_identity(
+                self.tmdb_type, self.tmdb_id,
+                item['season'] if self.media_type == 'episode' else None,
+                item['episode'] if self.media_type == 'episode' else None)['id']
+            for item in targets
+        }
+        return [item for item in self.history.get_targets(self.tmdb_type, self.tmdb_id, self.season, self.episode)
+                if item['id'] not in identities]
+
     def get_self(self):
-        if not self.is_allowed_type or not self.targets:
+        if not self.is_allowed_type:
+            return
+        if not self.targets and not self.get_history_targets(self.targets):
             return
         return super().get_self()
 
@@ -29,13 +47,18 @@ class ItemSync(ProviderItemSync):
         try:
             # Fetch again at write time to account for library changes since menu creation.
             targets = self.get_targets()
+            history_targets = self.get_history_targets(targets)
             results = [self.update_item(item) for item in targets]
+            results.extend(self.update_history_item(item) for item in history_targets)
             return bool(results) and all(results)
-        except KodiLibraryError as exc:
+        except (KodiLibraryError, DatabaseError) as exc:
             self.kodi_log(f'Kodi sync action: {exc}', 1)
             return False
 
     def update_item(self, item):
+        raise NotImplementedError
+
+    def update_history_item(self, item):
         raise NotImplementedError
 
     def get_is_successful_sync(self):

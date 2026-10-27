@@ -1,3 +1,4 @@
+from sqlite3 import Error as DatabaseError
 from jurialmunkey.ftools import cached_property
 from jurialmunkey.window import get_property
 from tmdbhelper.lib.addon.logger import kodi_log
@@ -11,6 +12,7 @@ from tmdbhelper_sync_kodi.library import KodiLibraryError
 class ProviderScrobbler(ScrobbleRequest):
     completed = False
     watchlist_completed = False
+    native_playback = False
 
     @property
     def library(self):
@@ -26,22 +28,34 @@ class ProviderScrobbler(ScrobbleRequest):
 
     def get_target(self):
         player = self.player
-        if self.media_type == 'episode' and (player.season < 0 or player.episode <= 0):
-            return
         targets = self.library.get_targets(
             player.tmdb_type, player.tmdb_id,
             None if self.media_type == 'movie' else player.season,
             None if self.media_type == 'movie' else player.episode,
         )
+        if not targets:
+            return
         playing_item = self.library.get_playing_item()
         target = next((item for item in targets if self.library.is_native_playback(item, self.media_type, playing_item)), None)
         self.native_playback = target is not None
         return target if target is not None else next(iter(targets), None)
 
+    @cached_property
+    def history_target(self):
+        return self.get_history_target()
+
+    def get_history_target(self):
+        player = self.player
+        return self.provider.history.get_targets(
+            player.tmdb_type, player.tmdb_id,
+            None if self.media_type == 'movie' else player.season,
+            None if self.media_type == 'movie' else player.episode,
+        )[0]
+
     def scrobble(self, method):
         try:
             result = self.get_scrobble_result(method)
-        except KodiLibraryError as exc:
+        except (KodiLibraryError, DatabaseError) as exc:
             kodi_log(f'Kodi scrobble: {exc}', 1)
             return ScrobbleResult(False, False)
         if result.successful and method == 'stop' and self.player.progress >= 80 and not self.watchlist_completed:
@@ -66,8 +80,12 @@ class ProviderScrobbler(ScrobbleRequest):
         get_property('Widgets.Reload', set_property=str(set_timestamp(0, True)))
 
     def get_scrobble_result(self, method):
-        if self.target is None:
+        if self.media_type == 'episode' and (self.player.season < 0 or self.player.episode <= 0):
             return ScrobbleResult(False, False)
+        # Resolve the starting state before playback changes it.
+        target = self.target
+        if target is None:
+            target = self.history_target
         if method == 'start':
             return ScrobbleResult(True, False)
         if method != 'stop':
@@ -75,7 +93,17 @@ class ProviderScrobbler(ScrobbleRequest):
         if self.completed or self.native_playback:
             # Kodi already persists the playcount and resume point for native playback.
             return ScrobbleResult(True, False)
+        if self.target is None:
+            return self.record_history_playback(target)
         return self.record_playback()
+
+    def record_history_playback(self, target):
+        completed = self.player.progress >= 80
+        changed = self.provider.history.record_playback(
+            target, self.player.current_time, self.player.total_time, completed, target.get('plays', 0),
+        )
+        self.completed = completed
+        return ScrobbleResult(True, changed)
 
     def record_playback(self):
         completed = self.player.progress >= 80

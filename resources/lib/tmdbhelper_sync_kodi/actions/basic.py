@@ -4,6 +4,9 @@ from tmdbhelper_sync_kodi.dates import get_kodi_date_now
 
 
 class ItemWatched(ItemSync, BasicItemWatched):
+    def update_history_item(self, item):
+        return self.history.set_watched(item, remove=self.remove)
+
     def update_item(self, item):
         return self.library.set_details(
             item, self.media_type,

@@ -8,6 +8,7 @@ from tmdbhelper_sync_kodi.actions.watchlist import ItemWatchlist
 from tmdbhelper_sync_kodi.scrobbler import ProviderScrobbler
 from tmdbhelper_sync_kodi.sync.watchlist import SyncWatchlist
 from tmdbhelper_sync_kodi.watchlist.database import WatchlistDatabase
+from tmdbhelper_sync_kodi.history.database import HistoryDatabase
 
 
 class Provider(SyncProvider):
@@ -49,6 +50,13 @@ class Provider(SyncProvider):
 
     def get_watchlist(self):
         return WatchlistDatabase()
+
+    @cached_property
+    def history(self):
+        return self.get_history()
+
+    def get_history(self):
+        return HistoryDatabase()
 
     def is_authorized(self):
         return True

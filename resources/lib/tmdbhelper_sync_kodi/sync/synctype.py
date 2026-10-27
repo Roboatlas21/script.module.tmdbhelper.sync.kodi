@@ -1,4 +1,5 @@
 from tmdbhelper_sync_kodi.sync.datatype import KodiDataType
+from tmdbhelper_sync_kodi.sync.history import KodiHistoryDataType
 
 
 class SyncCollection(KodiDataType):
@@ -8,13 +9,13 @@ class SyncCollection(KodiDataType):
     last_activities_key = 'collected_at'
 
 
-class SyncWatched(KodiDataType):
+class SyncWatched(KodiHistoryDataType):
     keys = ('plays', 'last_watched_at', 'watched_episodes')
     method = 'library/watched'
     last_activities_key = 'watched_at'
 
 
-class SyncPlayback(KodiDataType):
+class SyncPlayback(KodiHistoryDataType):
     keys = ('progress', 'paused_at', 'id')
     key_prefix = 'playback'
     method = 'library/playback'

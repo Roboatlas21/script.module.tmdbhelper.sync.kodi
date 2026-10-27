@@ -1,6 +1,7 @@
 # TMDbHelper Sync - Kodi
 
-Standalone interface-v3 provider for the active Kodi profile's video library.
+Standalone interface-v3 provider for the active Kodi profile's video library,
+with separate local storage for non-library history/progress and watchlist entries.
 Install alongside `plugin.video.themoviedb.helper` and choose **Kodi** separately
 for collection, history/progress, watchlist, and/or scrobbling in TMDbHelper's provider selectors.
 No account or authentication is required. Installation does not change selections.
@@ -11,17 +12,30 @@ No account or authentication is required. Installation does not change selection
   is read-only: the provider does not scan, add, delete, or remove library content.
 - History uses the stored playcount and latest played date. Kodi does not expose
   a full record of each past play through these library fields.
+- Non-library movies and episodes store playcounts, UTC watched/progress dates,
+  and resume positions separately in
+  `special://profile/addon_data/script.module.tmdbhelper.sync.kodi/history/history.db`.
+  Watched and playback sync combine these records with the library by TMDb identity
+  and episode coordinates. Library state wins on duplicates, including unwatched
+  state or cleared resume. Stored history is retained if an item enters the library,
+  but is ignored while that library item exists. Plays from both stores are not added.
 - Resume positions become playback percentages. Kodi does not provide a separate
   resume-modified timestamp; playback sorting uses the file's last-played date.
 - Show/season counts and next episodes come from local episodes, not the complete
-  TMDb catalogue. Show counts and next episodes exclude season zero. Future-dated
-  episodes are excluded from available counts and next episodes. Episode playcounts
-  remain independent of parent summary rows. An episode resume also starts next-up
-  tracking; the In progress show list requires a watched episode.
+  TMDb catalogue. Watched counts and parent watched dates additionally include tracked
+  non-library episodes. Parent playcounts describe the known episodes, not completion
+  of the full TMDb catalogue. Collection, available episode counts, and next-episode
+  discovery remain library-only. Show counts and next episodes exclude season zero.
+  Future-dated library episodes are excluded from available counts and next episodes.
+  Episode playcounts remain independent of parent summary rows. A library episode
+  resume also starts next-up tracking; the In progress show list requires a watched episode.
 - Mark watched ensures a playcount of at least one and clears resume. Repeating
   the action does not add plays. Mark unwatched clears playcount, last played, and
-  resume. Show/season actions update their matching local episodes.
-- Remove progress clears the matching movie/episode resume point.
+  resume. Library matches update the library as usual; non-library movies and episodes
+  update the separate history database. Show/season actions update their matching
+  library episodes and already tracked non-library episodes, without fetching or
+  creating the full TMDb episode catalogue.
+- Remove progress clears the matching movie/episode resume point in its owning store.
 - The watchlist starts empty and supports movies, shows, seasons, and episodes,
   including items outside the Kodi library. Add/remove uses the standard watchlist
   action. Entries are stored separately in
@@ -63,6 +77,13 @@ that were already recorded. When several local versions match an identity, the
 actively playing library entry wins; otherwise the first matching entry is used.
 Explicit watched/unwatched actions apply to every matching library entry.
 
+When no library item matches, the scrobbler records the same watched/resume state in
+the separate history database. A completed playback adds one play and clears resume;
+an early stop stores resume and its UTC update date without changing the playcount
+or last-watched date. Repeated completion requests do not add another play, while
+a new playback can record a rewatch. Streams are tracked by TMDb identity rather
+than their potentially transient file paths.
+
 At successful watched completion, the Kodi scrobbler also removes the movie or
 episode and any older watchlisted season/show immediately. Partial playback does
 not remove entries. This cleanup runs once per playback, preserving entries added
@@ -74,20 +95,6 @@ Kodi itself, using Kodi's native watched threshold and resume behavior. The prov
 does not increment it again. Selecting Trakt or MDbList for scrobbling does not
 disable Kodi's natural persistence when actually playing a Kodi library item.
 
-## Non-library tracking investigation
-
-Kodi's `Files.SetFileDetails` accepts playcount, lastplayed, and resume for a video
-path. Its implementation can create a file record without a scanned movie/episode,
-but checks file existence and remote-access permission first. A persistent local
-file can therefore retain watched state without entering the scanned collection.
-
-This is path-keyed storage, not an external-ID history store. Transient stream
-URLs do not give reliable identity across plays, and library movie/episode queries
-do not enumerate these unscanned records. General non-library sync would require
-a separate persistent TMDb-to-path index or provider-owned history storage. This
-initial provider only writes matching library entries and does not create synthetic
-library files or unscanned history records.
-
-References:
-- https://kodi.wiki/view/JSON-RPC_API/v13#Files.SetFileDetails
-- https://github.com/xbmc/xbmc/blob/Omega/xbmc/interfaces/json-rpc/FileOperations.cpp#L204-L243
+The provider-owned history database does not create synthetic library files or
+write unscanned Kodi file records. A failed library or history read leaves the
+previously synced watched/progress values intact.
