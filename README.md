@@ -54,8 +54,14 @@ and episode numbers; an episode's own TMDb ID is never treated as the show's ID.
 Items without a resolvable external identity are skipped with a diagnostic log.
 No title-only matching is used for writes.
 
-Snapshots expire after 60 seconds and read afresh through JSON-RPC, avoiding the
-core Kodi identity cache's three-hour lifetime. A failed or incomplete snapshot
+Library snapshots refresh after video-library update/removal notifications or a
+completed scan/clean received by TMDbHelper's UpdateMonitor. Starting the monitor
+also records a new activity stamp. Snapshot activities expire at the next local
+12am, 6am, 12pm, or 6pm boundary, so changes from other clients or missed
+notifications are picked up on the next sync request after that boundary.
+Watchlist snapshots retain their 60-second expiry and watched-provider cleanup.
+Snapshots read afresh through JSON-RPC, avoiding the core Kodi identity cache's
+three-hour lifetime. A failed or incomplete snapshot
 does not clear previously synced values. Successful empty snapshots clear removed
 items. Actions use the standard invalidation/resync pipeline.
 Kodi's local timestamps are converted to UTC with the timezone offset applicable

@@ -1,4 +1,6 @@
 from jurialmunkey.ftools import cached_property
+from jurialmunkey.window import get_property
+from tmdbhelper.lib.addon.consts import KODI_LIBRARY_LAST_UPDATED
 from tmdbhelper.lib.sync.providers.base import SyncProvider
 from tmdbhelper_sync_kodi.library import KodiLibraryClient
 from tmdbhelper_sync_kodi.sync import synctype, datasync
@@ -62,5 +64,9 @@ class Provider(SyncProvider):
         return True
 
     def get_last_activities(self):
-        # Kodi has no change feed. Concrete sync classes expire their snapshots.
-        return {}
+        timestamp = get_property(KODI_LIBRARY_LAST_UPDATED)
+        return {
+            item_type: {
+                key: timestamp for key in ('collected_at', 'watched_at', 'paused_at')
+            } for item_type in ('movies', 'episodes')
+        }
