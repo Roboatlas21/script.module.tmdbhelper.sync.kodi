@@ -119,10 +119,37 @@ class KodiSyncSnapshot:
     def configure_next_episode(self, parent, episodes, started):
         if not started:
             return
-        unwatched = sorted((item for item in episodes if item['season_number'] > 0 and not item['plays']),
-                           key=lambda item: (item['season_number'], item['episode_number']))
-        for item in unwatched:
-            item['upnext_episode_id'] = f'tv.{item["tmdb_id"]}.{item["season_number"]}.{item["episode_number"]}'
-        if unwatched:
-            parent['next_episode_id'] = unwatched[0]['upnext_episode_id']
-            parent['next_episode_aired_at'] = unwatched[0]['premiered']
+        episodes = sorted(
+            (item for item in episodes if item['season_number'] > 0),
+            key=self.get_episode_position)
+        for item in episodes:
+            if not item['plays']:
+                item['upnext_episode_id'] = self.get_episode_id(item)
+        next_episode = self.get_next_episode(episodes)
+        if next_episode is not None:
+            parent['next_episode_id'] = self.get_episode_id(next_episode)
+            parent['next_episode_aired_at'] = next_episode['premiered']
+
+    @staticmethod
+    def get_episode_position(item):
+        return (item['season_number'], item['episode_number'])
+
+    @staticmethod
+    def get_episode_id(item):
+        return f'tv.{item["tmdb_id"]}.{item["season_number"]}.{item["episode_number"]}'
+
+    @staticmethod
+    def get_episode_completed_at(item):
+        if 'progress' in item:
+            return item['paused_at'] if item['progress'] >= 80 else None
+        return item['last_watched_at'] if item['plays'] > 0 else None
+
+    def get_next_episode(self, episodes):
+        latest = max(
+            (item for item in episodes if self.get_episode_completed_at(item)),
+            key=lambda item: (self.get_episode_completed_at(item), self.get_episode_position(item)),
+            default=None)
+        position = self.get_episode_position(latest) if latest is not None else (-1, -1)
+        # All other completion dates precede the anchor, so later episodes are
+        # eligible again even when they were watched during a previous viewing.
+        return next((item for item in episodes if self.get_episode_position(item) > position), None)
