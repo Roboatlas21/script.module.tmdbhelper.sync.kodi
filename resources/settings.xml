@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings version="1">
+    <section id="script.module.tmdbhelper.sync.kodi">
+        <category id="sync" label="32000">
+            <group id="1">
+                <setting id="import_history" type="action" label="32001" help="32002">
+                    <level>0</level>
+                    <data>RunScript(script.module.tmdbhelper.sync.kodi,import_history)</data>
+                    <control type="button" format="action">
+                        <close>true</close>
+                    </control>
+                </setting>
+            </group>
+        </category>
+    </section>
+</settings>

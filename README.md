@@ -76,6 +76,33 @@ the Unix epoch as an unknown-date marker, rather than inventing a recent event.
 Consequently these undated watched items do not contribute to recent daily/monthly
 history statistics. Kodi cannot disambiguate repeated local times at a DST rollback.
 
+## Import watched history and progress
+
+Open this module's settings and choose **Sync watched/progress from provider...**
+to manually import from another installed, enabled watched sync provider. The source
+must already be authorized. This does not change TMDbHelper's provider selections
+or enable automatic imports.
+
+The import reads the source's full watched and playback snapshots before writing.
+Only movies and individual episodes are imported; show/season summaries are ignored.
+Matching library entries update through Kodi's video-library interface. Other items
+are stored in this module's separate history database, using the same TMDb identity
+and episode coordinates as scrobbling. All matching library versions are updated.
+
+Newer local dates win. Imported playcounts are merged using the larger count when
+applying a newer watched date, never added together. A newer completed watch clears
+older resume state; partial playback newer than both the watched date and local
+resume date sets resume. Repeating an import does not add plays. Missing source
+entries do not clear local watched or progress data. Kodi only exposes last played,
+so this date also serves as its resume-modified date during conflict comparison.
+
+Library progress uses the stored resume total, library runtime, or source runtime.
+An entry without any known duration skips progress and is reported in the result.
+Non-library progress without a duration uses a synthetic total of 100 to preserve
+the percentage. Source dates are retained in UTC in history storage and converted
+to local time for Kodi library writes. The normal watched/watchlist invalidation
+pipeline refreshes completed changes, including writes preceding a later failure.
+
 ## Scrobbling
 
 Only the selected scrobbling provider receives TMDbHelper's start/stop requests.

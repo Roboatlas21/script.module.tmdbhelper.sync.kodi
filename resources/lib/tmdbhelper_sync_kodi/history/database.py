@@ -86,6 +86,23 @@ class HistoryDatabase(Database):
             connection.execute('UPDATE history SET position=0, total=0, paused_at=NULL WHERE id=?', (item['id'],))
         return True
 
+    def import_item(self, item, get_values):
+        with closing(self.get_database()) as connection, connection:
+            # Serialize the merge with playback writes so importing cannot lose a newly recorded play.
+            connection.execute('BEGIN IMMEDIATE')
+            row = connection.execute('SELECT * FROM history WHERE id=?', (item['id'],)).fetchone()
+            current = dict(row) if row is not None else {
+                **item, 'plays': 0, 'last_watched_at': None,
+                'position': 0, 'total': 0, 'paused_at': None}
+            values = get_values(current)
+            if not values:
+                return False
+            self.insert_history_item(connection, item)
+            connection.execute(
+                'UPDATE history SET {} WHERE id=?'.format(', '.join(f'{key}=?' for key in values)),
+                (*values.values(), item['id']))
+        return True
+
     def record_playback(self, item, position, total, completed, starting_plays):
         timestamp = get_timestring_zulu_now()
         with closing(self.get_database()) as connection, connection:

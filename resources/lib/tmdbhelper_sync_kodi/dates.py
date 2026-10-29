@@ -16,3 +16,8 @@ def get_kodi_date_now():
 def normalize_zulu_date(value):
     date_time = datetime.datetime.fromisoformat(value.replace('Z', '+00:00'))
     return get_timestring_zulu(date_time.astimezone(datetime.timezone.utc))
+
+
+def zulu_date_to_kodi(value):
+    date_time = datetime.datetime.fromisoformat(value.replace('Z', '+00:00'))
+    return date_time.astimezone().strftime('%Y-%m-%d %H:%M:%S')

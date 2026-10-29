@@ -1,0 +1,37 @@
+msgid ""
+msgstr ""
+"Language: en_GB\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgctxt "#32000"
+msgid "Sync"
+msgstr ""
+
+msgctxt "#32001"
+msgid "Sync watched/progress from provider..."
+msgstr ""
+
+msgctxt "#32002"
+msgid "Import watched history and playback progress from another installed sync provider. Library matches update Kodi; other movies and episodes use the separate history database. Newer local state is preserved."
+msgstr ""
+
+msgctxt "#32003"
+msgid "No other watched sync providers are installed and enabled."
+msgstr ""
+
+msgctxt "#32004"
+msgid "Authorize {0} before importing its watched history and progress."
+msgstr ""
+
+msgctxt "#32005"
+msgid "Import failed after updating {0} items. Completed updates were retained. See the Kodi log for details."
+msgstr ""
+
+msgctxt "#32006"
+msgid "Import complete. Updated {0} movies and episodes."
+msgstr ""
+
+msgctxt "#32007"
+msgid "Progress could not be imported for {0} library entries without a known runtime."
+msgstr ""
